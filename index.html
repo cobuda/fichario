@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fichário Pokémon</title>
+<meta name="description" content="Catálogo pessoal de cartas: fotografe a página do fichário, identifique as cartas e acompanhe o valor da coleção.">
+<meta name="theme-color" content="#16202C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fichário">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: uma coluna de bolsos de fichário — resumo emoldurado como carta, captura da página, inventário em linhas */
+:root {
+  --chao: #E8ECF1; --folha: #FFFFFF; --folha-2: #F3F5F8; --tinta: #16202C; --tinta-2: #5B6677;
+  --linha: #D2D9E2; --moldura: #EFBF2A; --acao: #2246C4; --acao-tinta: #FFFFFF;
+  --bom: #1D8551; --alerta: #A86613; --erro: #B53A31;
+  --f-titulo: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --f-corpo: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --raio: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chao: #0E131B; --folha: #171F2B; --folha-2: #1E2734; --tinta: #E7EBF1; --tinta-2: #98A3B3;
+    --linha: #2A3546; --moldura: #E3B421; --acao: #7F99FF; --acao-tinta: #0E131B;
+    --bom: #4CC28A; --alerta: #E2A54C; --erro: #F07C72; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { background: var(--chao); color: var(--tinta); margin: 0; }
+body {
+  font-family: var(--f-corpo); font-size: 15px; line-height: 1.5;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px));
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  -webkit-text-size-adjust: 100%;
+}
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+.pagina { max-width: 880px; margin: 0 auto; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--f-titulo); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-size: 1.3rem; font-weight: 800; }
+h3 { font-size: 1.05rem; font-weight: 800; }
+.mono { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.rotulo { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: var(--tinta-2); }
+button, input, select { font: inherit; color: inherit; }
+input, select { font-size: 16px; } /* evita o zoom automático do iPhone */
+button { cursor: pointer; }
+a { color: var(--acao); }
+:focus-visible { outline: 3px solid var(--acao); outline-offset: 2px; }
+
+.topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.topo h1 { font-size: 1.9rem; font-weight: 800; }
+.topo p { margin: 0; color: var(--tinta-2); font-size: 0.9rem; }
+.btn-icone { border: 1px solid var(--linha); background: var(--folha); border-radius: 10px; width: 44px; height: 44px; display: grid; place-items: center; flex: none; }
+.btn-icone svg { width: 22px; height: 22px; }
+
+.aviso { background: var(--folha); border: 1px solid var(--linha); border-left: 4px solid var(--alerta); border-radius: 8px; padding: 12px 14px; font-size: 0.92rem; }
+
+.resumo { background: var(--moldura); border-radius: 18px; padding: 8px; }
+.resumo-dentro { background: var(--folha); border-radius: 12px; padding: 18px 18px 16px; display: grid; gap: 14px; }
+.filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+.filtro { border: 1px solid var(--linha); background: var(--folha-2); border-radius: 999px; padding: 5px 12px; font-size: 0.85rem; font-weight: 600; }
+.filtro[aria-pressed="true"] { background: var(--tinta); color: var(--folha); border-color: var(--tinta); }
+.total { font-family: var(--f-titulo); font-weight: 800; font-size: clamp(2.2rem, 9vw, 3.4rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border-top: 1px dashed var(--linha); padding-top: 12px; }
+.numeros div { min-width: 0; }
+.numeros b { display: block; font-family: var(--f-num); font-size: 1.05rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.barra { height: 6px; border-radius: 3px; background: var(--folha-2); overflow: hidden; margin-top: 4px; }
+.barra i { display: block; height: 100%; background: var(--bom); width: 0; }
+.aviso-preco { font-size: 0.8rem; color: var(--tinta-2); margin: 0; }
+
+.bloco { background: var(--folha); border: 1px solid var(--linha); border-radius: var(--raio); padding: 18px; display: grid; gap: 14px; }
+.bloco-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dica { margin: 0; color: var(--tinta-2); font-size: 0.88rem; }
+.passos { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 0.92rem; }
+
+.botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--linha); background: var(--folha-2); border-radius: 10px; padding: 10px 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; color: var(--tinta); min-height: 44px; }
+.btn-principal { background: var(--acao); color: var(--acao-tinta); border-color: var(--acao); }
+.btn-perigo { color: var(--erro); }
+.btn-perigo.confirmar { background: var(--erro); color: var(--folha); border-color: var(--erro); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-arquivo { position: relative; overflow: hidden; }
+.btn-arquivo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+.opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.campo { display: grid; gap: 4px; min-width: 0; }
+.campo input, .campo select { border: 1px solid var(--linha); background: var(--folha-2); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+.segmentos { display: flex; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; }
+.segmentos button { flex: 1; border: 0; background: var(--folha-2); padding: 9px 6px; font-weight: 600; font-size: 0.88rem; }
+.segmentos button[aria-pressed="true"] { background: var(--tinta); color: var(--folha); }
+
+.foto { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 14px; align-items: start; }
+.foto img { width: 120px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; border: 4px solid var(--moldura); background: var(--folha-2); }
+.status { font-size: 0.92rem; display: flex; align-items: center; gap: 10px; }
+.status.erro { color: var(--erro); }
+.status.bom { color: var(--bom); }
+.girando { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--linha); border-top-color: var(--acao); animation: gira 0.8s linear infinite; flex: none; }
+@keyframes gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .girando { animation-duration: 3s; } }
+
+.revisao { display: grid; gap: 10px; }
+.lida { border: 1px solid var(--linha); border-radius: 10px; padding: 12px; display: grid; gap: 10px; background: var(--folha-2); }
+.lida.fora { opacity: 0.55; }
+.lida-topo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: start; }
+.lida-topo input[type="checkbox"] { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--acao); }
+.lida-info { min-width: 0; }
+.lida-info b { display: block; font-size: 1rem; }
+.meta { font-size: 0.82rem; color: var(--tinta-2); overflow-wrap: anywhere; }
+.confianca { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.confianca.alta { color: var(--bom); }
+.confianca.media { color: var(--alerta); }
+.confianca.baixa { color: var(--erro); }
+.lida-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.obs { font-size: 0.82rem; color: var(--tinta-2); margin: 0; }
+
+.ferramentas { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.ferramentas input, .ferramentas select { border: 1px solid var(--linha); background: var(--folha-2); border-radius: 8px; padding: 8px 10px; min-width: 0; width: 100%; }
+.ferramentas select { width: auto; max-width: 9.5rem; }
+.lista { list-style: none; margin: 0; padding: 0; display: grid; }
+.carta { border-top: 1px solid var(--linha); }
+.carta:first-child { border-top: 0; }
+.linha { width: 100%; background: none; border: 0; padding: 12px 2px; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; }
+.bolso { width: 30px; height: 42px; border-radius: 4px; border: 3px solid var(--moldura); background: var(--folha-2); display: grid; place-items: center; font-size: 0.8rem; color: var(--tinta-2); }
+.linha-info { min-width: 0; display: grid; gap: 2px; }
+.linha-info b { font-weight: 700; overflow-wrap: anywhere; }
+.etiquetas { display: flex; gap: 4px; flex-wrap: wrap; }
+.etq { font-size: 0.72rem; padding: 1px 7px; border-radius: 999px; background: var(--folha-2); border: 1px solid var(--linha); color: var(--tinta-2); white-space: nowrap; }
+.etq.colega { border-color: var(--acao); color: var(--acao); }
+.valor { text-align: right; display: grid; gap: 1px; }
+.valor b { font-family: var(--f-num); font-variant-numeric: tabular-nums; font-size: 0.98rem; }
+.valor small { font-size: 0.74rem; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.valor .conferido { color: var(--bom); }
+.editor { padding: 4px 2px 16px 42px; display: grid; gap: 12px; }
+.editor .opcoes { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+
+.vazio { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 18px; align-items: center; padding: 6px 0; }
+.grade-vazia { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 132px; }
+.grade-vazia span { aspect-ratio: 5 / 7; border: 2px dashed var(--linha); border-radius: 4px; }
+.grade-vazia span:nth-child(5) { border: 3px solid var(--moldura); background: var(--folha-2); }
+.vazio p { margin: 0; color: var(--tinta-2); }
+.vazio b { color: var(--tinta); display: block; font-family: var(--f-titulo); font-size: 1.05rem; margin-bottom: 4px; }
+
+.mensagem { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--tinta); color: var(--folha); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 0.92rem; max-width: calc(100% - 32px); z-index: 10; }
+
+@media (max-width: 520px) {
+  .numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .numeros div:last-child { grid-column: 1 / -1; }
+  .foto { grid-template-columns: 88px minmax(0, 1fr); }
+  .foto img { width: 88px; }
+  .editor { padding-left: 2px; }
+  .vazio { grid-template-columns: 96px minmax(0, 1fr); }
+  .grade-vazia { width: 96px; }
+  .topo p { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="pagina">
+  <header class="topo">
+    <div>
+      <h1>Fichário Pokémon</h1>
+      <p>Fotografe a página, confira as cartas e acompanhe o valor da coleção.</p>
+    </div>
+    <button class="btn-icone" id="btn-config" aria-label="Configurações" title="Configurações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <div id="aviso" class="aviso" hidden></div>
+
+  <!-- Configurações -->
+  <section class="bloco" id="config" aria-labelledby="titulo-config" hidden>
+    <div class="bloco-topo">
+      <h2 id="titulo-config">Configurações</h2>
+      <button class="btn" id="btn-fechar-config">Fechar</button>
+    </div>
+    <div id="config-passos">
+      <h3 style="margin-bottom:8px">Ativar a leitura das fotos</h3>
+      <ol class="passos">
+        <li>Abra o <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> e entre com sua conta Google.</li>
+        <li>Toque em <b>Criar chave</b> e copie a chave gerada (começa com "AIza").</li>
+        <li>Cole a chave abaixo e toque em <b>Testar e salvar</b>.</li>
+      </ol>
+    </div>
+    <label class="campo" for="cfg-chave">
+      <span class="rotulo">Chave do Gemini</span>
+      <input id="cfg-chave" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Cole aqui a sua chave">
+    </label>
+    <label class="campo" for="cfg-modelo">
+      <span class="rotulo">Modelo de leitura</span>
+      <select id="cfg-modelo"><option value="">Teste a chave para listar os modelos</option></select>
+    </label>
+    <div class="botoes">
+      <button class="btn btn-principal" id="btn-testar">Testar e salvar</button>
+      <button class="btn" id="btn-mostrar-chave">Mostrar chave</button>
+    </div>
+    <div class="status" id="cfg-status" hidden></div>
+    <p class="dica">A chave fica guardada só neste aparelho. O uso gratuito do Gemini tem limite diário, mais que suficiente para uma coleção pessoal. Se trocar de celular, gere ou cole a chave de novo.</p>
+
+    <h3 style="margin-top:6px">Cópia de segurança</h3>
+    <p class="dica">As cartas ficam salvas no aparelho. Faça uma cópia de vez em quando e guarde no Drive ou no e-mail. A mesma cópia serve para levar o fichário do iPhone para o tablet.</p>
+    <div class="botoes">
+      <button class="btn" id="btn-backup">Fazer cópia de segurança</button>
+      <label class="btn btn-arquivo" for="restaurar">Restaurar cópia
+        <input id="restaurar" type="file" accept=".json,application/json">
+      </label>
+    </div>
+  </section>
+
+  <section class="resumo" aria-labelledby="titulo-resumo">
+    <div class="resumo-dentro">
+      <div class="bloco-topo">
+        <span class="rotulo" id="titulo-resumo">Valor do fichário</span>
+        <div class="filtros" role="group" aria-label="Mostrar cartas de">
+          <button class="filtro" data-filtro="minha" aria-pressed="true">Minha coleção</button>
+          <button class="filtro" data-filtro="colega" aria-pressed="false">Do colega</button>
+          <button class="filtro" data-filtro="todas" aria-pressed="false">Tudo</button>
+        </div>
+      </div>
+      <div class="total" id="total">R$ 0,00</div>
+      <div class="numeros">
+        <div><span class="rotulo">Cartas</span><b id="n-cartas">0</b></div>
+        <div><span class="rotulo">Mais valiosa</span><b id="n-top">—</b></div>
+        <div><span class="rotulo">Valor conferido na Liga</span><b id="n-conferido">0%</b><div class="barra"><i id="barra-conferido"></i></div></div>
+      </div>
+      <p class="aviso-preco">Valores marcados como estimados vêm da leitura da IA. Ao conferir o preço na Liga Pokémon e corrigir na carta, ela passa a contar como conferida.</p>
+    </div>
+  </section>
+
+  <section class="bloco" aria-labelledby="titulo-captura">
+    <h2 id="titulo-captura">Nova página do fichário</h2>
+    <p class="dica">Fotografe de frente, sem reflexo do plástico. Para ler bem o número da carta, prefira meia página ou poucas cartas por foto.</p>
+
+    <div class="opcoes">
+      <div class="campo">
+        <span class="rotulo" id="rotulo-dono">De quem são as cartas</span>
+        <div class="segmentos" role="group" aria-labelledby="rotulo-dono">
+          <button data-dono="minha" aria-pressed="true">Minhas</button>
+          <button data-dono="colega" aria-pressed="false">Do colega</button>
+        </div>
+      </div>
+      <label class="campo" for="pagina-n">
+        <span class="rotulo">Página do fichário</span>
+        <input id="pagina-n" type="number" min="1" inputmode="numeric" placeholder="Ex.: 3">
+      </label>
+    </div>
+
+    <div class="botoes">
+      <label class="btn btn-principal btn-arquivo" for="foto-camera">Fotografar página
+        <input id="foto-camera" type="file" accept="image/*" capture="environment">
+      </label>
+      <label class="btn btn-arquivo" for="foto-galeria">Escolher da galeria
+        <input id="foto-galeria" type="file" accept="image/*">
+      </label>
+    </div>
+
+    <div class="foto" id="foto-area" hidden>
+      <img id="foto-previa" alt="Foto da página do fichário">
+      <div style="display:grid;gap:10px;min-width:0">
+        <div class="botoes">
+          <button class="btn btn-principal" id="btn-analisar">Identificar cartas</button>
+          <button class="btn" id="btn-parar" hidden>Parar</button>
+          <button class="btn" id="btn-descartar">Descartar foto</button>
+        </div>
+        <div class="status" id="status" hidden></div>
+      </div>
+    </div>
+
+    <div id="revisao-area" hidden>
+      <div class="bloco-topo" style="margin-bottom:10px">
+        <h3 id="revisao-titulo">Confira antes de guardar</h3>
+        <button class="btn btn-principal" id="btn-guardar">Guardar no fichário</button>
+      </div>
+      <div class="revisao" id="revisao"></div>
+    </div>
+  </section>
+
+  <section class="bloco" aria-labelledby="titulo-inventario">
+    <div class="bloco-topo">
+      <h2 id="titulo-inventario">Cartas guardadas</h2>
+      <button class="btn" id="btn-planilha" hidden>Baixar planilha</button>
+    </div>
+    <div class="ferramentas">
+      <input id="busca" type="search" placeholder="Buscar por nome, coleção ou número" aria-label="Buscar carta">
+      <select id="ordem" aria-label="Ordenar por">
+        <option value="valor">Maior valor</option>
+        <option value="pagina">Página do fichário</option>
+        <option value="nome">Nome</option>
+        <option value="recentes">Mais recentes</option>
+      </select>
+    </div>
+    <ul class="lista" id="lista"></ul>
+    <div class="vazio" id="vazio">
+      <div class="grade-vazia" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <p><b id="vazio-titulo">Nenhuma carta guardada ainda</b><span id="vazio-texto">Fotografe uma página do fichário acima. A IA lê cada carta, sugere o valor e você confirma antes de guardar.</span></p>
+    </div>
+  </section>
+</div>
+
+<div class="mensagem" id="mensagem" role="status" hidden></div>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+  const ESTADOS = ["Nova", "Quase nova", "Pouco usada", "Usada", "Muito usada", "Danificada"];
+  const SIMBOLO = { "Comum": "●", "Incomum": "◆", "Rara": "★", "Rara brilhante": "★", "Promocional": "P" };
+  const CHAVE_CARTAS = "fichario.cartas.v1";
+  const CHAVE_CONFIG = "fichario.config.v1";
+  const API = "https://generativelanguage.googleapis.com/v1beta";
+
+  /* ---------- Armazenamento no aparelho ---------- */
+  function ler(chave, padrao) { try { const v = localStorage.getItem(chave); return v ? JSON.parse(v) : padrao; } catch { return padrao; } }
+  function gravar(chave, valor) {
+    try { localStorage.setItem(chave, JSON.stringify(valor)); return true; }
+    catch { mensagem("Não deu para salvar no aparelho. Libere espaço e faça uma cópia de segurança."); return false; }
+  }
+  let cartas = ler(CHAVE_CARTAS, []);
+  if (!Array.isArray(cartas)) cartas = [];
+  let config = ler(CHAVE_CONFIG, { chave: "", modelo: "" });
+  const salvarCartas = () => gravar(CHAVE_CARTAS, cartas);
+  const salvarConfig = () => gravar(CHAVE_CONFIG, config);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  let fotoAtual = null, fotoUrl = null, ctl = null, lidas = [], renderPendente = false;
+  const st = { filtro: "minha", dono: "minha", ordem: "valor", busca: "", aberta: null, excluir: null };
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const num = (v) => { const n = Number(String(v ?? "").replace(/\s/g, "").replace("R$", "").replace(",", ".")); return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : 0; };
+  const inteiro = (v, min = 1) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= min ? n : min; };
+  const novoId = () => "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const ligaUrl = (c) => "https://www.ligapokemon.com.br/?view=cards/search&card=" + encodeURIComponent(c.nome || "");
+
+  function mensagem(t) {
+    const m = $("#mensagem"); m.textContent = t; m.hidden = false;
+    clearTimeout(mensagem._t); mensagem._t = setTimeout(() => { m.hidden = true; }, 3400);
+  }
+  function aviso(t) { const a = $("#aviso"); a.textContent = t || ""; a.hidden = !t; }
+  function status(el, t, tipo = "") {
+    el.hidden = !t; el.className = "status" + (tipo === "erro" ? " erro" : tipo === "bom" ? " bom" : "");
+    el.innerHTML = t ? (tipo === "carregando" ? '<span class="girando" aria-hidden="true"></span>' : "") + `<span>${esc(t)}</span>` : "";
+  }
+
+  /* ---------- Resumo ---------- */
+  const filtradas = () => cartas.filter((c) => st.filtro === "todas" || (c.dono || "minha") === st.filtro);
+  function renderResumo() {
+    let total = 0, qtd = 0, conferido = 0, top = null;
+    for (const c of filtradas()) {
+      const v = num(c.preco) * inteiro(c.quantidade);
+      total += v; qtd += inteiro(c.quantidade);
+      if (c.origem === "conferido") conferido += v;
+      if (!top || num(c.preco) > num(top.preco)) top = c;
+    }
+    $("#total").textContent = BRL.format(total);
+    $("#n-cartas").textContent = qtd.toLocaleString("pt-BR");
+    $("#n-top").textContent = top && num(top.preco) > 0 ? `${top.nome} · ${BRL.format(num(top.preco))}` : "—";
+    const pct = total > 0 ? Math.round((conferido / total) * 100) : 0;
+    $("#n-conferido").textContent = pct + "%";
+    $("#barra-conferido").style.width = pct + "%";
+    document.querySelectorAll(".filtro").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.filtro === st.filtro)));
+  }
+
+  /* ---------- Inventário ---------- */
+  function renderLista() {
+    const foco = document.activeElement;
+    if (foco && foco.matches && foco.matches(".editor input, .editor select")) { renderPendente = true; return; }
+    renderPendente = false;
+    const q = st.busca.trim().toLowerCase();
+    const lista = filtradas().filter((c) => !q || [c.nome, c.colecao, c.numero].join(" ").toLowerCase().includes(q));
+    const ord = {
+      valor: (a, b) => num(b.preco) * inteiro(b.quantidade) - num(a.preco) * inteiro(a.quantidade),
+      pagina: (a, b) => (a.pagina || 9999) - (b.pagina || 9999) || (a.posicao || 0) - (b.posicao || 0),
+      nome: (a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR"),
+      recentes: (a, b) => (b.criadoEm || 0) - (a.criadoEm || 0),
+    }[st.ordem];
+    lista.sort(ord);
+    $("#lista").innerHTML = lista.map(linhaHtml).join("");
+    $("#vazio").hidden = lista.length > 0;
+    if (!lista.length) {
+      if (cartas.length && q) { $("#vazio-titulo").textContent = "Nenhuma carta encontrada"; $("#vazio-texto").textContent = "Tente outro nome, coleção ou número."; }
+      else if (cartas.length) { $("#vazio-titulo").textContent = st.filtro === "colega" ? "Nenhuma carta do colega" : "Nenhuma carta sua ainda"; $("#vazio-texto").textContent = "Troque o filtro no topo ou fotografe uma nova página."; }
+      else { $("#vazio-titulo").textContent = "Nenhuma carta guardada ainda"; $("#vazio-texto").textContent = "Fotografe uma página do fichário acima. A IA lê cada carta, sugere o valor e você confirma antes de guardar."; }
+    }
+    $("#btn-planilha").hidden = !cartas.length;
+  }
+
+  function linhaHtml(c) {
+    const q = inteiro(c.quantidade), p = num(c.preco), aberta = st.aberta === c.id;
+    const etq = [
+      c.estado && `<span class="etq">${esc(c.estado)}</span>`,
+      c.variante && c.variante !== "Normal" && `<span class="etq">${esc(c.variante)}</span>`,
+      c.idioma && c.idioma !== "Português" && `<span class="etq">${esc(c.idioma)}</span>`,
+      c.pagina && `<span class="etq">Página ${esc(c.pagina)}</span>`,
+      c.dono === "colega" && `<span class="etq colega">Do colega</span>`,
+    ].filter(Boolean).join("");
+    return `<li class="carta" data-id="${esc(c.id)}">
+      <button class="linha" data-acao="abrir" aria-expanded="${aberta}">
+        <span class="bolso" aria-hidden="true">${esc(SIMBOLO[c.raridade] || "★")}</span>
+        <span class="linha-info">
+          <b>${esc(c.nome || "Carta sem nome")}</b>
+          <span class="meta"><span class="mono">${esc(c.numero || "s/ nº")}</span>${c.colecao ? " · " + esc(c.colecao) : ""}${c.raridade ? " · " + esc(c.raridade) : ""}</span>
+          <span class="etiquetas">${etq}</span>
+        </span>
+        <span class="valor">
+          <b>${BRL.format(p * q)}</b>
+          ${q > 1 ? `<small>${q} × ${BRL.format(p)}</small>` : ""}
+          <small class="${c.origem === "conferido" ? "conferido" : ""}">${c.origem === "conferido" ? "conferido" : "estimado"}</small>
+        </span>
+      </button>
+      ${aberta ? editorHtml(c) : ""}
+    </li>`;
+  }
+
+  function editorHtml(c) {
+    const confirmar = st.excluir === c.id;
+    return `<div class="editor">
+      <div class="opcoes">
+        <label class="campo" for="e-nome"><span class="rotulo">Nome</span><input id="e-nome" value="${esc(c.nome)}"></label>
+        <label class="campo" for="e-numero"><span class="rotulo">Número</span><input id="e-numero" value="${esc(c.numero)}"></label>
+        <label class="campo" for="e-preco"><span class="rotulo">Valor unitário (R$)</span><input id="e-preco" inputmode="decimal" value="${esc(num(c.preco).toFixed(2).replace(".", ","))}"></label>
+        <label class="campo" for="e-qtd"><span class="rotulo">Quantidade</span><input id="e-qtd" type="number" min="1" inputmode="numeric" value="${inteiro(c.quantidade)}"></label>
+        <label class="campo" for="e-estado"><span class="rotulo">Estado</span><select id="e-estado">${ESTADOS.map((e) => `<option${e === c.estado ? " selected" : ""}>${e}</option>`).join("")}</select></label>
+        <label class="campo" for="e-pagina"><span class="rotulo">Página</span><input id="e-pagina" type="number" min="1" inputmode="numeric" value="${c.pagina ? esc(c.pagina) : ""}"></label>
+        <label class="campo" for="e-dono"><span class="rotulo">Dono</span><select id="e-dono"><option value="minha"${c.dono !== "colega" ? " selected" : ""}>Minha coleção</option><option value="colega"${c.dono === "colega" ? " selected" : ""}>Do colega</option></select></label>
+      </div>
+      ${c.faixa || c.observacao ? `<p class="obs">${c.faixa ? "Faixa sugerida pela IA: " + esc(c.faixa) : ""}${c.faixa && c.observacao ? " · " : ""}${esc(c.observacao || "")}</p>` : ""}
+      <div class="botoes">
+        <button class="btn btn-principal" data-acao="salvar">Salvar alterações</button>
+        <a class="btn" href="${esc(ligaUrl(c))}" target="_blank" rel="noopener">Ver preço na Liga</a>
+        <button class="btn btn-perigo${confirmar ? " confirmar" : ""}" data-acao="excluir">${confirmar ? "Confirmar exclusão" : "Excluir"}</button>
+      </div>
+    </div>`;
+  }
+
+  const renderTudo = () => { renderResumo(); renderLista(); };
+
+  $("#lista").addEventListener("click", (ev) => {
+    const alvo = ev.target.closest("[data-acao]"); if (!alvo) return;
+    const id = alvo.closest(".carta")?.dataset.id; if (!id) return;
+    const c = cartas.find((x) => x.id === id); if (!c) return;
+    const acao = alvo.dataset.acao;
+    if (acao === "abrir") { st.aberta = st.aberta === id ? null : id; st.excluir = null; renderLista(); return; }
+    if (acao === "salvar") {
+      const preco = num($("#e-preco").value);
+      if (preco !== num(c.preco)) c.origem = "conferido";
+      Object.assign(c, {
+        nome: $("#e-nome").value.trim() || c.nome,
+        numero: $("#e-numero").value.trim(),
+        preco,
+        quantidade: inteiro($("#e-qtd").value),
+        estado: $("#e-estado").value,
+        pagina: $("#e-pagina").value ? inteiro($("#e-pagina").value) : null,
+        dono: $("#e-dono").value,
+      });
+      salvarCartas(); st.aberta = null; document.activeElement?.blur(); renderTudo(); mensagem("Carta atualizada");
+      return;
+    }
+    if (acao === "excluir") {
+      if (st.excluir !== id) {
+        st.excluir = id; renderLista();
+        setTimeout(() => { if (st.excluir === id) { st.excluir = null; renderLista(); } }, 5000);
+        return;
+      }
+      cartas = cartas.filter((x) => x.id !== id); salvarCartas();
+      st.aberta = null; st.excluir = null; renderTudo(); mensagem("Carta removida do fichário");
+    }
+  });
+  $("#lista").addEventListener("focusout", () => { setTimeout(() => { if (renderPendente) renderLista(); }, 0); });
+  document.querySelectorAll(".filtro").forEach((b) => b.addEventListener("click", () => { st.filtro = b.dataset.filtro; st.aberta = null; renderTudo(); }));
+  $("#busca").addEventListener("input", (e) => { st.busca = e.target.value; renderLista(); });
+  $("#ordem").addEventListener("change", (e) => { st.ordem = e.target.value; renderLista(); });
+
+  /* ---------- Configurações ---------- */
+  function abrirConfig(abrir) {
+    $("#config").hidden = !abrir;
+    if (abrir) {
+      $("#cfg-chave").value = config.chave || "";
+      preencherModelos(config.modelo ? [config.modelo] : [], config.modelo);
+      $("#config").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+  $("#btn-config").addEventListener("click", () => abrirConfig($("#config").hidden));
+  $("#btn-fechar-config").addEventListener("click", () => abrirConfig(false));
+  $("#btn-mostrar-chave").addEventListener("click", (e) => {
+    const i = $("#cfg-chave"); const ver = i.type === "password"; i.type = ver ? "text" : "password";
+    e.target.textContent = ver ? "Ocultar chave" : "Mostrar chave";
+  });
+
+  function preencherModelos(nomes, escolhido) {
+    const sel = $("#cfg-modelo");
+    if (!nomes.length) { sel.innerHTML = '<option value="">Teste a chave para listar os modelos</option>'; return; }
+    sel.innerHTML = nomes.map((n) => `<option value="${esc(n)}"${n === escolhido ? " selected" : ""}>${esc(n)}</option>`).join("");
+  }
+
+  // Ordena os modelos "flash" do mais novo para o mais antigo, deixando as versões leves e de prévia por último.
+  function pesoModelo(n) {
+    const v = (n.match(/gemini-(\d+(?:\.\d+)?)/) || [0, "0"])[1];
+    let p = parseFloat(v) * 100;
+    if (/lite/.test(n)) p -= 40;
+    if (/preview|exp/.test(n)) p -= 20;
+    if (/latest/.test(n)) p += 5;
+    return p;
+  }
+
+  async function listarModelos(chave) {
+    const r = await fetch(`${API}/models?pageSize=200`, { headers: { "x-goog-api-key": chave } });
+    if (!r.ok) throw await erroApi(r);
+    const j = await r.json();
+    return (j.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map((m) => String(m.name || "").replace(/^models\//, ""))
+      .filter((n) => /^gemini-/.test(n) && /flash/.test(n) && !/(image|tts|audio|live|thinking-exp|embedding)/.test(n))
+      .sort((a, b) => pesoModelo(b) - pesoModelo(a));
+  }
+
+  $("#btn-testar").addEventListener("click", async () => {
+    const chave = $("#cfg-chave").value.trim();
+    const el = $("#cfg-status");
+    if (!chave) { status(el, "Cole a chave do Gemini antes de testar.", "erro"); return; }
+    const btn = $("#btn-testar"); btn.disabled = true;
+    status(el, "Testando a chave…", "carregando");
+    try {
+      const modelos = await listarModelos(chave);
+      if (!modelos.length) throw { msg: "A chave funciona, mas nenhum modelo de leitura de imagem apareceu para ela." };
+      const escolhido = modelos.includes($("#cfg-modelo").value) && $("#cfg-modelo").value ? $("#cfg-modelo").value : modelos[0];
+      preencherModelos(modelos, escolhido);
+      config = { chave, modelo: escolhido }; salvarConfig();
+      status(el, `Chave salva. Modelo em uso: ${escolhido}.`, "bom");
+      atualizarAvisos();
+    } catch (e) {
+      status(el, e.msg || "Não deu para testar agora. Verifique a internet e tente de novo.", "erro");
+    } finally { btn.disabled = false; }
+  });
+  $("#cfg-modelo").addEventListener("change", (e) => { if (config.chave && e.target.value) { config.modelo = e.target.value; salvarConfig(); mensagem("Modelo atualizado"); } });
+
+  function atualizarAvisos() {
+    if (!config.chave) aviso("Para ler as fotos, ative a leitura nas Configurações (ícone de engrenagem). Leva dois minutos e é gratuito.");
+    else aviso("");
+  }
+
+  async function erroApi(r) {
+    let detalhe = "";
+    try { detalhe = (await r.json())?.error?.message || ""; } catch {}
+    if (r.status === 400 && /api key/i.test(detalhe)) return { msg: "Chave inválida. Confira se copiou a chave inteira." };
+    if (r.status === 401 || r.status === 403) return { msg: "A chave não tem permissão para usar o Gemini. Gere uma nova no Google AI Studio." };
+    if (r.status === 404) return { msg: "Esse modelo não está disponível para a sua chave. Escolha outro nas Configurações." };
+    if (r.status === 429) return { msg: "Limite gratuito atingido por agora. Espere um minuto (ou até amanhã, se for o limite do dia)." };
+    if (r.status >= 500) return { msg: "O serviço do Google está instável. Tente de novo em instantes." };
+    return { msg: "A leitura falhou" + (detalhe ? ": " + detalhe : ".") };
+  }
+
+  /* ---------- Cópia de segurança ---------- */
+  function baixarArquivo(nome, conteudo, tipo) {
+    const blob = new Blob([conteudo], { type: tipo });
+    const arquivo = new File([blob], nome, { type: tipo });
+    if (navigator.canShare && navigator.canShare({ files: [arquivo] }) && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
+      navigator.share({ files: [arquivo], title: nome }).catch(() => {});
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = nome;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  const hoje = () => new Date().toISOString().slice(0, 10);
+
+  $("#btn-backup").addEventListener("click", () => {
+    if (!cartas.length) { mensagem("Ainda não há cartas para copiar."); return; }
+    baixarArquivo(`fichario-copia-${hoje()}.json`, JSON.stringify({ app: "fichario-pokemon", versao: 1, data: new Date().toISOString(), cartas }, null, 1), "application/json");
+  });
+
+  $("#restaurar").addEventListener("change", async (ev) => {
+    const f = ev.target.files && ev.target.files[0]; ev.target.value = "";
+    if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      const vindas = Array.isArray(j) ? j : j.cartas;
+      if (!Array.isArray(vindas)) throw new Error();
+      const ids = new Set(cartas.map((c) => c.id));
+      let novas = 0;
+      for (const c of vindas) {
+        if (!c || typeof c !== "object" || !c.nome) continue;
+        if (!c.id || ids.has(c.id)) { if (c.id && ids.has(c.id)) continue; c.id = novoId(); }
+        cartas.push(c); ids.add(c.id); novas++;
+      }
+      salvarCartas(); renderTudo();
+      mensagem(novas ? `${novas} ${novas === 1 ? "carta restaurada" : "cartas restauradas"}` : "Todas as cartas da cópia já estavam no fichário");
+    } catch { mensagem("Esse arquivo não é uma cópia do fichário."); }
+  });
+
+  $("#btn-planilha").addEventListener("click", () => {
+    const col = (v) => { const s = String(v ?? ""); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const dec = (n) => num(n).toFixed(2).replace(".", ",");
+    const cab = ["Página", "Posição", "Nome", "Coleção", "Número", "Raridade", "Variante", "Idioma", "Estado", "Quantidade", "Valor unitário (R$)", "Valor total (R$)", "Origem do valor", "Dono"];
+    const linhas = [...cartas].sort((a, b) => (a.pagina || 9999) - (b.pagina || 9999) || (a.posicao || 0) - (b.posicao || 0)).map((c) => [
+      c.pagina || "", c.posicao || "", c.nome, c.colecao, c.numero, c.raridade, c.variante, c.idioma, c.estado,
+      inteiro(c.quantidade), dec(c.preco), dec(num(c.preco) * inteiro(c.quantidade)),
+      c.origem === "conferido" ? "Conferido" : "Estimado", c.dono === "colega" ? "Colega" : "Minha coleção",
+    ].map(col).join(";"));
+    baixarArquivo(`fichario-pokemon-${hoje()}.csv`, "﻿" + [cab.join(";"), ...linhas].join("\r\n"), "text/csv");
+  });
+
+  /* ---------- Captura e leitura ---------- */
+  document.querySelectorAll("[data-dono]").forEach((b) => b.addEventListener("click", () => {
+    st.dono = b.dataset.dono;
+    document.querySelectorAll("[data-dono]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.dono === st.dono)));
+  }));
+
+  function escolherFoto(ev) {
+    const f = ev.target.files && ev.target.files[0]; ev.target.value = "";
+    if (!f) return;
+    fotoAtual = f;
+    if (fotoUrl) URL.revokeObjectURL(fotoUrl);
+    fotoUrl = URL.createObjectURL(f);
+    $("#foto-previa").src = fotoUrl;
+    $("#foto-area").hidden = false;
+    status($("#status"), "");
+    lidas = []; renderRevisao();
+  }
+  $("#foto-camera").addEventListener("change", escolherFoto);
+  $("#foto-galeria").addEventListener("change", escolherFoto);
+  function descartarFoto() {
+    fotoAtual = null; if (fotoUrl) URL.revokeObjectURL(fotoUrl); fotoUrl = null;
+    $("#foto-area").hidden = true; status($("#status"), "");
+  }
+  $("#btn-descartar").addEventListener("click", () => { ctl?.abort(); descartarFoto(); lidas = []; renderRevisao(); });
+  $("#btn-parar").addEventListener("click", () => ctl?.abort());
+
+  // Reduz a foto para no máximo 2000 px no lado maior e converte em JPEG (base64).
+  async function prepararImagem(arquivo) {
+    const img = await new Promise((ok, falha) => {
+      const i = new Image(); i.onload = () => ok(i); i.onerror = () => falha(new Error("imagem"));
+      i.src = URL.createObjectURL(arquivo);
+    });
+    const max = 2000, escala = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * escala), h = Math.round(img.naturalHeight * escala);
+    const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
+    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(img.src);
+    return canvas.toDataURL("image/jpeg", 0.88).split(",")[1];
+  }
+
+  const PROMPT = `Você é especialista em cartas do Pokémon Estampas Ilustradas (o jogo de cartas colecionáveis) e no mercado brasileiro de cartas avulsas, com referência nos preços da Liga Pokémon, em reais.
+
+A imagem é a foto de uma página de fichário de cartas (normalmente 9 bolsos, 3 por 3) ou de algumas cartas soltas. As cartas costumam ser em português.
+
+Identifique cada carta visível. Ignore bolsos vazios e o verso de cartas. Para cada carta, informe:
+- posicao: número de 1 a 9, lendo da esquerda para a direita e de cima para baixo
+- nome: o nome impresso na carta, como aparece (em português, se a carta for em português)
+- colecao: nome da coleção ou expansão, em português se existir; "" se não souber
+- numero: o número impresso no rodapé, no formato "025/165"; "" se não der para ler
+- raridade: uma de "Comum", "Incomum", "Rara", "Rara brilhante", "Ultra rara", "Rara ilustração", "Rara ilustração especial", "Rara secreta", "Promocional", "Outra"
+- variante: uma de "Normal", "Brilho reverso", "Brilhante"
+- idioma: uma de "Português", "Inglês", "Japonês", "Outro"
+- estado: o que der para ver pela foto, uma de "Nova", "Quase nova", "Pouco usada", "Usada", "Muito usada", "Danificada" (se não der para avaliar, use "Quase nova")
+- confianca: "alta", "media" ou "baixa", sobre a identificação da carta exata (coleção e número)
+- preco_estimado: valor de mercado unitário estimado em reais na Liga Pokémon para essa carta, nesse idioma, variante e estado; use 0 se não tiver ideia
+- preco_min e preco_max: faixa provável em reais
+- observacao: nota curta em português (até 100 caracteres), por exemplo o motivo da baixa confiança; "" se não houver
+
+Os preços são estimativas com base no seu conhecimento; seja realista e conservador para cartas comuns (centavos a poucos reais).
+
+Responda somente com JSON neste formato:
+{"cartas":[{"posicao":1,"nome":"","colecao":"","numero":"","raridade":"","variante":"","idioma":"","estado":"","confianca":"","preco_estimado":0,"preco_min":0,"preco_max":0,"observacao":""}],"aviso":""}
+Use "aviso" para problemas na foto (reflexo, desfoque, cartas cortadas); "" se a foto estiver boa.`;
+
+  function lerJson(texto) {
+    const t = String(texto || "").trim();
+    try { return JSON.parse(t); } catch {}
+    const cerca = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (cerca) { try { return JSON.parse(cerca[1]); } catch {} }
+    const i = t.indexOf("{"), f = t.lastIndexOf("}");
+    if (i >= 0 && f > i) { try { return JSON.parse(t.slice(i, f + 1)); } catch {} }
+    return null;
+  }
+
+  $("#btn-analisar").addEventListener("click", async () => {
+    if (!fotoAtual) return;
+    const el = $("#status");
+    if (!config.chave) { status(el, "Ative a leitura nas Configurações antes (ícone de engrenagem).", "erro"); abrirConfig(true); return; }
+    if (!navigator.onLine) { status(el, "Sem internet agora. A leitura precisa de conexão.", "erro"); return; }
+    ctl = new AbortController();
+    $("#btn-analisar").disabled = true; $("#btn-parar").hidden = false;
+    status(el, "Lendo as cartas… costuma levar de 10 a 40 segundos.", "carregando");
+    lidas = []; renderRevisao();
+    try {
+      const b64 = await prepararImagem(fotoAtual);
+      const modelo = config.modelo || "gemini-2.5-flash";
+      const r = await fetch(`${API}/models/${encodeURIComponent(modelo)}:generateContent`, {
+        method: "POST",
+        signal: ctl.signal,
+        headers: { "Content-Type": "application/json", "x-goog-api-key": config.chave },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: PROMPT }, { inline_data: { mime_type: "image/jpeg", data: b64 } }] }],
+          generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+        }),
+      });
+      if (!r.ok) throw await erroApi(r);
+      const j = await r.json();
+      const cand = (j.candidates || [])[0];
+      if (!cand) throw { msg: j.promptFeedback?.blockReason ? "O Google recusou essa imagem. Tente outra foto." : "A leitura não devolveu resultado. Tente de novo." };
+      const texto = (cand.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
+      const dados = lerJson(texto);
+      if (!dados) throw { msg: "A resposta veio incompleta. Tente de novo, de preferência com menos cartas na foto." };
+      const lista = Array.isArray(dados.cartas) ? dados.cartas : Array.isArray(dados) ? dados : [];
+      const pagina = $("#pagina-n").value ? inteiro($("#pagina-n").value) : null;
+      lidas = lista.filter((x) => x && (x.nome || x.numero)).map((x, i) => ({
+        incluir: true,
+        posicao: inteiro(x.posicao ?? i + 1),
+        nome: String(x.nome || "").slice(0, 80),
+        colecao: String(x.colecao || "").slice(0, 80),
+        numero: String(x.numero || "").slice(0, 20),
+        raridade: String(x.raridade || ""),
+        variante: String(x.variante || "Normal"),
+        idioma: String(x.idioma || "Português"),
+        estado: ESTADOS.includes(x.estado) ? x.estado : "Quase nova",
+        confianca: ({ alta: "alta", media: "media", "média": "media", baixa: "baixa" })[String(x.confianca).toLowerCase()] || "media",
+        preco: num(x.preco_estimado),
+        faixa: num(x.preco_max) > 0 ? `${BRL.format(num(x.preco_min))} a ${BRL.format(num(x.preco_max))}` : "",
+        observacao: String(x.observacao || "").slice(0, 140),
+        quantidade: 1,
+        pagina,
+      })).sort((a, b) => a.posicao - b.posicao);
+      if (!lidas.length) status(el, dados.aviso ? `Nenhuma carta identificada. ${dados.aviso}` : "Nenhuma carta identificada nessa foto. Tente mais perto e sem reflexo.", "erro");
+      else status(el, (dados.aviso ? `${lidas.length} cartas lidas. Atenção: ${dados.aviso}` : `${lidas.length} ${lidas.length === 1 ? "carta lida" : "cartas lidas"}. Confira abaixo.`), "bom");
+      renderRevisao();
+    } catch (e) {
+      if (e?.name === "AbortError") status(el, "Leitura interrompida.");
+      else if (e?.message === "imagem") status(el, "Não deu para abrir essa foto. Tente outra, em JPG ou PNG.", "erro");
+      else status(el, e?.msg || "Algo falhou na leitura. Verifique a internet e tente de novo.", "erro");
+    } finally {
+      $("#btn-analisar").disabled = false; $("#btn-parar").hidden = true;
+    }
+  });
+
+  function renderRevisao() {
+    $("#revisao-area").hidden = !lidas.length;
+    if (!lidas.length) { $("#revisao").innerHTML = ""; return; }
+    const sel = lidas.filter((x) => x.incluir);
+    const total = sel.reduce((s, x) => s + x.preco * x.quantidade, 0);
+    $("#revisao-titulo").textContent = `Confira antes de guardar · ${sel.length} de ${lidas.length} · ${BRL.format(total)}`;
+    $("#btn-guardar").disabled = !sel.length;
+    $("#revisao").innerHTML = lidas.map((x, i) => `
+      <div class="lida${x.incluir ? "" : " fora"}" data-i="${i}">
+        <div class="lida-topo">
+          <input type="checkbox" id="l-inc-${i}" data-campo="incluir" ${x.incluir ? "checked" : ""} aria-label="Guardar ${esc(x.nome)}">
+          <div class="lida-info">
+            <b>${esc(x.posicao)}. ${esc(x.nome)}</b>
+            <span class="meta"><span class="mono">${esc(x.numero || "s/ nº")}</span>${x.colecao ? " · " + esc(x.colecao) : ""}${x.raridade ? " · " + esc(x.raridade) : ""}${x.variante && x.variante !== "Normal" ? " · " + esc(x.variante) : ""}${x.idioma && x.idioma !== "Português" ? " · " + esc(x.idioma) : ""}</span>
+          </div>
+          <span class="confianca ${x.confianca}">${x.confianca === "alta" ? "certeza alta" : x.confianca === "baixa" ? "certeza baixa" : "certeza média"}</span>
+        </div>
+        <div class="lida-campos">
+          <label class="campo" for="l-nome-${i}"><span class="rotulo">Nome</span><input id="l-nome-${i}" data-campo="nome" value="${esc(x.nome)}"></label>
+          <label class="campo" for="l-num-${i}"><span class="rotulo">Número</span><input id="l-num-${i}" data-campo="numero" value="${esc(x.numero)}"></label>
+          <label class="campo" for="l-est-${i}"><span class="rotulo">Estado</span><select id="l-est-${i}" data-campo="estado">${ESTADOS.map((e) => `<option${e === x.estado ? " selected" : ""}>${e}</option>`).join("")}</select></label>
+          <label class="campo" for="l-preco-${i}"><span class="rotulo">Valor (R$)</span><input id="l-preco-${i}" data-campo="preco" inputmode="decimal" value="${x.preco.toFixed(2).replace(".", ",")}"></label>
+          <label class="campo" for="l-qtd-${i}"><span class="rotulo">Quantidade</span><input id="l-qtd-${i}" data-campo="quantidade" type="number" min="1" inputmode="numeric" value="${x.quantidade}"></label>
+        </div>
+        ${x.faixa || x.observacao ? `<p class="obs">${x.faixa ? "Faixa provável: " + esc(x.faixa) : ""}${x.faixa && x.observacao ? " · " : ""}${esc(x.observacao)}</p>` : ""}
+      </div>`).join("");
+  }
+
+  $("#revisao").addEventListener("change", (ev) => {
+    const el = ev.target, box = el.closest(".lida"); if (!box || !el.dataset.campo) return;
+    const x = lidas[Number(box.dataset.i)], campo = el.dataset.campo;
+    if (campo === "incluir") x.incluir = el.checked;
+    else if (campo === "preco") { x.preco = num(el.value); x.precoEditado = true; }
+    else if (campo === "quantidade") x.quantidade = inteiro(el.value);
+    else x[campo] = el.value;
+    renderRevisao();
+  });
+
+  $("#btn-guardar").addEventListener("click", () => {
+    const sel = lidas.filter((x) => x.incluir);
+    if (!sel.length) return;
+    const agora = Date.now();
+    for (const x of sel) {
+      cartas.push({
+        id: novoId(), nome: x.nome, colecao: x.colecao, numero: x.numero, raridade: x.raridade, variante: x.variante,
+        idioma: x.idioma, estado: x.estado, quantidade: x.quantidade, preco: x.preco,
+        origem: x.precoEditado ? "conferido" : "estimado", faixa: x.faixa, observacao: x.observacao,
+        pagina: x.pagina, posicao: x.posicao, dono: st.dono, criadoEm: agora,
+      });
+    }
+    if (!salvarCartas()) { cartas.splice(cartas.length - sel.length, sel.length); return; }
+    mensagem(`${sel.length} ${sel.length === 1 ? "carta guardada" : "cartas guardadas"} no fichário`);
+    lidas = []; renderRevisao(); descartarFoto();
+    const pg = $("#pagina-n"); if (pg.value) pg.value = String(inteiro(pg.value) + 1);
+    st.filtro = st.dono; renderTudo();
+  });
+
+  /* ---------- Início ---------- */
+  renderTudo();
+  atualizarAvisos();
+  if (!config.chave) abrirConfig(true);
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
